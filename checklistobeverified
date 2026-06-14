@@ -1,3 +1,11 @@
+https://medium.com/@mrcix/sensitive-data-exposure-in-a-moodle-config-file-648ca3d54676
+https://medium.com/@Zeroo_sec/how-i-accessed-an-admin-panel-without-touching-the-keyboard-43ad45a06f8d
+Add this file to your wordlist `.gitlab-ci.yml` , enjoy its contain a database username and password.
+"PII Data Exposure of Hundreds of Users Including , Name , Email , Vehicle Number , CNIC Number, Password Hashes Etc 
+
+Endpoint:example[.]com/storage/logs/Laravel.log"	/export/inc/config.inc
+
+
 https://buer.haus/2015/01/15/yahoo-root-access-sql-injection-tw-yahoo-com/
 https://medium.com/@zomasec/how-i-found-22-lfi-in-the-same-program-using-automation-tricks-3ea303d24f4a
 
