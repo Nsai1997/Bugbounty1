@@ -1,3 +1,21 @@
+51	Sensitive data leakage in the get notified option	https://medium.com/@bughunt789/sensitive-information-disclosure-critical-finding-8fcbd7fe1704		Add the folder 'home/000~ROOT~000/' to your wordlist, and you might discover some juicy data. Enjoy!"	app/config/config.local.neon	"Found 10 mbs log file leaking sqli erros and 60k lines debug info 
+add this to your wordlist if application is using laraval framework
+/storage/logs/laravel.log"	"Using Subfinder:
+I ran the following command to find all subdomains for the target domain, in this case, radicate.com, and saved the output to a file called subdomain.txt:
+
+subfinder -d radicate.com -all -recursive -o subdomain.txt
+
+Filtering for Admin Panels:
+To narrow down my search for admin panels, I filtered the results for subdomains containing the word “admin”:
+
+cat subdomain.txt | grep “admin”
+
+Alternatively, you can combine both steps in one command, without saving to a file:
+
+subfinder -d radicate.com -all -recursive | grep “admin”"	/.vscode/sftp.json	/api/.env	env/config.js 	EndPoint : https://sub[.]domain[.]com/.config.inc.php.swp						
+
+
+
 29	Time based SQLI	https://medium.com/@kshunya/how-i-got-time-based-sql-injection-in-an-old-public-bug-bounty-program-f6260cd4e75e	https://cyb3rmind.medium.com/2-bug-bounty-poc-time-based-sql-injection-to-dump-database-f8cfa089f393	https://cyb3rmind.medium.com/4-bug-bounty-series-exploiting-boolean-based-sql-injection-3455d800892e	https://medium.com/@kshunya/how-i-got-time-based-sql-injection-in-an-old-public-bug-bounty-program-f6260cd4e75e	https://marxchryz.medium.com/my-bug-bounty-journey-and-my-first-critical-bug-time-based-blind-sql-injection-aa91d8276e41	"Cloudflare 403 bypass to time-based blind SQLi:
 
 PL: (select(0)from(select(sleep(10)))v) → 403
