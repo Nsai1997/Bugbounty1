@@ -1,0 +1,381 @@
+ROLE
+
+
+Tum Senior Bug Bounty Hunter ho.
+
+
+Target: Targtet.com (Public Bug Bounty Program)
+
+
+IMPORTANT
+
+
+Humne bahut recon kar liya hai.
+
+
+Humare paas:
+
+
+- sub.txt
+
+- urls.txt
+
+- js.txt
+
+- 2 Merchant Accounts (A & B)
+
+- API Mapping
+
+- JS Reverse Engineering
+
+- Hidden APIs
+
+- Hidden Routes
+
+- Hidden Services
+
+- Multiple Bug Reports already submitted
+
+
+Ab mujhe aur endpoints nahi chahiye.
+
+
+Ab mujhe aur recon nahi chahiye.
+
+
+Ab mujhe aur JS analysis nahi chahiye.
+
+
+Ab mujhe batana hai ki actual hunting kahan karni hai.
+
+
+----------------------------------------------------
+
+
+MISSION
+
+
+Think like a HackerOne Top 1 researcher.
+
+
+Assume:
+
+
+500+ researchers already tested
+
+
+- XSS
+
+- IDOR
+
+- JWT
+
+- Source Maps
+
+- Secrets
+
+- Swagger
+
+- Hidden Endpoints
+
+- Common APIs
+
+- Login
+
+- Basic Business Logic
+
+
+Agar koi idea duplicate hone ke chances high hain to usko reject kar do.
+
+
+----------------------------------------------------
+
+
+TASK 1
+
+
+Review everything we have discovered so far.
+
+
+Don't repeat old findings.
+
+
+Tell me
+
+
+Which attack surfaces are COMPLETELY exhausted.
+
+
+Example
+
+
+Merchant API
+
+
+Publisher Portal
+
+
+JWT
+
+
+Source Maps
+
+
+Support API
+
+
+Login Widget
+
+
+Explain WHY we should stop testing them.
+
+
+----------------------------------------------------
+
+
+TASK 2
+
+
+Now identify ONLY the attack surfaces that most researchers usually IGNORE.
+
+
+Examples
+
+
+New Product
+
+
+Demo Applications
+
+
+Merchant Onboarding
+
+
+Organization Lifecycle
+
+
+Invitation System
+
+
+Role Management
+
+
+Project Creation
+
+
+Project Sharing
+
+
+Store Builder
+
+
+Creator Platform
+
+
+Affiliate System
+
+
+Internal Tools
+
+
+Customer Portal
+
+
+Partner Portal
+
+
+Subscription Lifecycle
+
+
+Payment Recovery
+
+
+Refund Workflow
+
+
+Notification System
+
+
+Background Jobs
+
+
+Async Processing
+
+
+Approval Workflow
+
+
+Feature Flags
+
+
+Release Preview
+
+
+Beta Products
+
+
+Any newly launched product
+
+
+----------------------------------------------------
+
+
+TASK 3
+
+
+Don't think like a Bug Hunter.
+
+
+Think like an Application Architect.
+
+
+Find features where developers usually forget authorization or business logic.
+
+
+Don't suggest vulnerabilities.
+
+
+Suggest FEATURES.
+
+
+----------------------------------------------------
+
+
+TASK 4
+
+
+Rank Top 15 Features.
+
+
+Columns
+
+
+Feature
+
+
+Business Value
+
+
+Complexity
+
+
+Authorization Risk
+
+
+Business Logic Risk
+
+
+Duplicate Probability
+
+
+Manual Testing Difficulty
+
+
+Expected Severity
+
+
+Overall Score
+
+
+----------------------------------------------------
+
+
+TASK 5
+
+
+Recommend ONLY Top 5 Features.
+
+
+Not endpoints.
+
+
+Not APIs.
+
+
+Not URLs.
+
+
+Only Features.
+
+
+Explain
+
+
+Why this feature is under-tested.
+
+
+Why competitors ignore it.
+
+
+Why automation misses it.
+
+
+Why business logic may exist.
+
+
+Why authorization mistakes may exist.
+
+
+----------------------------------------------------
+
+
+TASK 6
+
+
+For each feature create a Deep Dive Plan.
+
+
+Include
+
+
+What accounts are required.
+
+
+What workflows to map.
+
+
+What objects to track.
+
+
+What relationships to observe.
+
+
+What state transitions exist.
+
+
+What should be compared.
+
+
+What should never be assumed.
+
+
+----------------------------------------------------
+
+
+TASK 7
+
+
+Very Important
+
+
+I don't want easy bugs.
+
+
+I don't want duplicate bugs.
+
+
+I don't want Information Disclosure.
+
+
+I don't want Source Maps.
+
+
+I don't want Secrets.
+
+
+I don't want Scanner Findings.
+
+
+I want complex business workflows that require deep manual analysis.
+
+
