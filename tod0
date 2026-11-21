@@ -1,0 +1,13 @@
+Ngnix latest cve
+check for the files which are hidden wantedly.
+check for the CL-TE,TE-CL
+check for the response manipulation,
+check for the backedn apis which may trigger the issue
+are they iploading the data to the approved source or not
+Articles that are not published can we access them.
+Netra findings for hte internet facing.
+Front end server is what?
+backedn server is what..
+from where the data is being downloaded.
+is the conectviity between teh liniedin and the application is secure or not
+what is the abckedn specific test cases
